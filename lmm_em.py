@@ -1,7 +1,8 @@
 # Use EM to solve linear mixed model
 # Usage: 
-# python3 /home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.6/phenotypeh0.6_s2_r0.01_0228213237.csv -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/
+# python3 /home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.5/phenotypeh0.5_s0.1_r0.001_03142144330958.csv -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata
 # Save the log file in output_path/em.log and the result in output_path/em_results.csv
+# -pd can be a fold or a file, if it is a fold, the program will run all files that contain "phenotype" in the fold
 
 import numpy as np
 import pandas as pd
@@ -269,6 +270,56 @@ def get_parser():
     )
     return parser
 
+def run_algo(genodata, phenodata):
+    # load data
+    genotypes = genodata
+    phenotype = phenodata
+
+    y = phenotype.reshape(-1, 1)
+    X = genotypes
+    Z = np.ones((y.shape[0], 1))
+
+    n, p = X.shape
+
+    # run EM algorithm
+    start_time = time.time()
+    # run EM algorithm
+    (
+        likelihood_list,
+        omega_list,
+        sigma_beta2_list,
+        sigma_e2_list,
+        beta_post
+    ) = lmm_em(y, X, Z, tol=1e-6, max_iter=2000, verbose=False)
+    end_time = time.time()
+    print(
+        "Run time: %d min %.2f s"
+        % ((end_time - start_time) // 60, (end_time - start_time) % 60)
+    )
+    sigma_beta2 = sigma_beta2_list[-1]
+    sigma_e2 = sigma_e2_list[-1]
+
+    # Get params from file name
+    # file_name: phenotypeh${heritability}_s${sigma_beta}_r${causal_rate}_%m%d%H%M%S.csv
+    phenotype_params = phenotype_path.split("phenotypeh")[1].split(".csv")[0].split("_")
+    h, sigma_beta, causal_rate = float(phenotype_params[0][1:]), float(phenotype_params[1][1:]), float(phenotype_params[2][1:])
+    created_time = phenotype_params[3]
+
+    # Compare with real h
+    var_xbeta = p * sigma_beta2
+    h_calc = var_xbeta / (var_xbeta + sigma_e2)
+    print("Real h = %.4f, calculated h = %.4f" % (h, h_calc))
+
+    result = pd.DataFrame({
+        "data": [created_time],
+        "h": [h],
+        "sigma_beta": [sigma_beta],
+        "causal_rate": [causal_rate],
+        "hest": [round(h_calc, 6)]
+    })
+
+    return result
+
 if __name__ == "__main__":
     # set up logging and parse arguments
     parser = get_parser()
@@ -278,80 +329,51 @@ if __name__ == "__main__":
         os.makedirs(args.output_path)
     logger = logging.getLogger('em_logger')
     logger.setLevel(logging.INFO)
-    # fh = logging.FileHandler(args.output_path+"/em.log", mode='a')
-    # fh.setLevel(logging.INFO)
-    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    # fh.setFormatter(formatter)
-    # logger.addHandler(fh)
+    log_path = args.output_path+"/log"
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
+    fh = logging.FileHandler(log_path+"/em.log", mode='a')
+    fh.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
     logger.info("Start time: %s" % time.ctime())
     print("Start time: %s" % time.ctime())
 
     # load data
     genotypes_path = args.genotype_data_path
-    genotypes = pd.read_csv(genotypes_path, header=0).values
+    if not os.path.exists(genotypes_path):
+        raise ValueError("Genotype file does not exist in " + genotypes_path)
+    else:
+        genotypes = pd.read_csv(genotypes_path, header=0).values
 
-    # get all files that contain "phenotype" in the fold
-    phenotype_fold = args.phenotype_data_path
+    # if phenotype_data_path is a fold, get all files that contain "phenotype" in the fold
     phenotype_paths = []
-    for root, dirs, files in os.walk(phenotype_fold):
-        for file in files:
-            if "phenotype" in file:
-                phenotype_paths.append(os.path.join(root, file))
+    if os.path.isdir(args.phenotype_data_path):
+        phenotype_fold = args.phenotype_data_path
+        phenotype_paths = []
+        # get all files that contain "phenotype" in the fold
+        for root, dirs, files in os.walk(phenotype_fold):
+            for file in files:
+                if "phenotype" in file:
+                    phenotype_paths.append(os.path.join(root, file))
+    else:
+        phenotype_paths.append(args.phenotype_data_path)
 
+    results = pd.DataFrame()
     for phenotype_path in phenotype_paths:
-        phenotype = pd.read_csv(phenotype_path, header=0).values
+        if not os.path.exists(phenotype_path):
+            raise ValueError("Phenotype file does not exist in " + phenotype_path)
+        else:
+            phenotype = pd.read_csv(phenotype_path, header=0).values
 
-        y = phenotype.reshape(-1, 1)
-        X = genotypes
-        Z = np.ones((y.shape[0], 1))
-
-        n, p = X.shape
-
-        # run EM algorithm
-        start_time = time.time()
-        # run EM algorithm
-        (
-            likelihood_list,
-            omega_list,
-            sigma_beta2_list,
-            sigma_e2_list,
-            beta_post
-        ) = lmm_em(y, X, Z, tol=1e-6, max_iter=2000, verbose=False)
-        end_time = time.time()
-        print(
-            "Run time: %d min %.2f s"
-            % ((end_time - start_time) // 60, (end_time - start_time) % 60)
-        )
-        sigma_beta2 = sigma_beta2_list[-1]
-        sigma_e2 = sigma_e2_list[-1]
-        # logger.info("sigma_beta^2 = {:.4e}".format(sigma_beta2))
-        # logger.info("sigma_e^2 = {:.4e}".format(sigma_e2))
-        # logger.info("beta_post_mean = {:.4e}".format(np.mean(beta_post)))
-        # logger.info("omega_mean = {:.4e}".format(np.mean(omega_list[:, -1])))
-
-        # Get params from file name
-        # file_name: phenotypeh${heritability}_s${sigma_beta}_r${causal_rate}_%m%d%H%M%S.csv
-        phenotype_params = phenotype_path.split("phenotypeh")[1].split(".csv")[0].split("_")
-        h, sigma_beta, causal_rate = float(phenotype_params[0][1:]), float(phenotype_params[1][1:]), float(phenotype_params[2][1:])
-        created_time = phenotype_params[3]
-
-        # Compare with real h
-        var_xbeta = p * sigma_beta2
-        h_calc = var_xbeta / (var_xbeta + sigma_e2)
-        logger.info("Real h = %.4f, calculated h = %.4f" % (h, h_calc))
-        print("Real h2g = %.4f, calculated h2g = %.4f" % (h, h_calc))
-
-        results = pd.DataFrame({
-            "data": [created_time],
-            "h": [h],
-            "sigma_beta": [sigma_beta],
-            "causal_rate": [causal_rate],
-            "hest": [round(h_calc, 6)]
-        })
+        result = run_algo(genotypes, phenotype)
+        results = pd.concat([results, result])
 
         # Save result
-        result_file = args.output_path + "/em_results.csv"
-        with open(result_file, "a") as f:
-            results.to_csv(f, header=f.tell()==0, index=False)
+    result_file = args.output_path + "/em_results.csv"
+    with open(result_file, "a") as f:
+        results.to_csv(f, header=f.tell()==0, index=False)
 
-        logger.info("End time: %s\n\n" % time.ctime())
+    logger.info("End time: %s\n\n" % time.ctime())
+    print("End time: %s\n\n" % time.ctime())

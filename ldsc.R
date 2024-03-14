@@ -1,6 +1,6 @@
 # Rscript to run ldsc.r with given data through command line
 # Usage:
-# Rsript /home/wjiang49/UKBheight/runLDSCR.r -d /home/wjiang49/scratch/UKBsimdata/h0.6/summary_data_h0.9_s2_r0.1_0312120822.csv -N 2000 -o /home/wjiang49/scratch/
+# Rscript /home/wjiang49/UKBheight/ldsc.R -d /home/wjiang49/scratch/UKBsimdata/h0.6/summary_data_h0.6_s0.1_r0.001_03150017435666.csv -N 2000 -o /home/wjiang49/scratch/UKBsimdata
 # Save the log file in output_path/ldsc.log and the result in output_path/ldsc_results.csv
 
 paste0("Begin at ", Sys.time())
@@ -191,17 +191,17 @@ estimate_h2 <- function(sumstat, ldscore, reg_w = 1, constrain_intercept = F, in
 
 read_summary_data_with_ldsc <- function(file_path) {
     # read file
+    if (!file.exists(file_path)) {
+        stop("File not found at ", file_path)
+    }
     data <- read.csv(file_path, header = TRUE)
     sumstats <- data.frame(ldscore = data$LDSCORE, Z = data$Z)
     return(sumstats)
 }
 
-#---------- END ldsc.r-------
-
-# source("ldsc.R") # ! test
 sumstats <- read_summary_data_with_ldsc(data.path)
 fit_ldsc <- estimate_h2(data.frame(Z = sumstats$Z, N = n_sample), sumstats$ldscore, constrain_intercept = T, int = 1)
-p <- nrow(sumstats$ldscore)
+p <- length(sumstats$ldscore)
 h2.est <- fit_ldsc$coefs[2] * p
 h2.est <- round(h2.est, 6)
 
@@ -215,9 +215,9 @@ r <- as.numeric(substring(param[3], 2))
 data.name <- as.numeric(param[4])
 
 # save result
-paste0(h2.est, " ", h2.real)
+paste0("est: ", h2.est, " real: ", h2.real)
 result <- data.frame(data = data.name, h = h2.real, sigma_beta = s, causal_rate = r, hest = h2.est)
-result.file <- paste0(output.path, "ldsc_results.csv")
+result.file <- file.path(output.path, "ldsc_results.csv")
 if (!file.exists(result.file)) {
     write.table(result, file = result.file, sep = ",", col.names = TRUE, row.names = FALSE)
 } else {

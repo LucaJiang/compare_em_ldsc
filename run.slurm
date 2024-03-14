@@ -2,13 +2,13 @@
 #SBATCH -A pa_bios_department
 #SBATCH -p special_bios
 #SBATCH -J UKBHeight_gendata
-#SBATCH -o /home/wjiang49/UKBheight/slurm_out_%j.log
+#SBATCH -o /home/wjiang49/UKBheight/log/slurm_out_%j.log
 #SBATCH -N 1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=64GB
 #SBATCH -t 12:00:00
-#SBATCH --array=1-3
+#SBATCH --array=1-4
 
 # ------------- GLOBAL SETTINGS ------------#
 N_SNP=40000 # Set the number of SNPs
@@ -18,20 +18,19 @@ h_list=($(seq 0.1 0.1 0.9)) # Set heritability list
 r_list=(1e-3 1e-2 5e-1) # Set Causal rate list
 s_list=(0.1 1 10) # Set sigma_beta
 # ! If enable job array, set to # of array
-SLURM_ARRAY_TASK_MAX=3
+SLURM_ARRAY_TASK_MAX=4
 
 # Set data and paths
 data_path_name=/home/wjiang49/scratch/height_ukb_50k_chr22
 output_path=/home/wjiang49/scratch/UKBsimdata
 code_path=/home/wjiang49/UKBheight
-log_path=/home/wjiang49/scratch/UKBheight/log
+log_path=/home/wjiang49/scratch/UKBsimdata/log
 
 # Set conda environment name
 r_env="r4"
 python_env="nsf"
 
-# -------------- END SETTINGS ----------------- #
-
+# ------------ Initialization -------------- #
 # Calculate task load for each task array
 if [ -n "$SLURM_ARRAY_TASK_ID" ]
 then
@@ -50,6 +49,15 @@ fi
 sleep $((RANDOM % 10))
 echo "$SLURM_JOB_NAME: Start time: $(date), Running h = ${h_list[*]}. Repeat $repeat_times times."
 
+# Create the directory if it does not exist
+if [ ! -d $output_path ]; then
+    mkdir -p $output_path
+fi
+
+if [ ! -d $log_path ]; then
+    mkdir -p $log_path
+fi
+
 # -------------- PART ONE ----------------- #
 #            Calculate ldscore
 # ----------------------------------------- #
@@ -62,35 +70,26 @@ echo "$SLURM_JOB_NAME: Start time: $(date), Running h = ${h_list[*]}. Repeat $re
 # -------------- PART TWO ------------------#
 #             Generate data
 # ----------------------------------------- #
-# Create the directory if it does not exist
-if [ ! -d $output_path ]; then
-    mkdir $output_path
-fi
-
-if [ ! -d $log_path ]; then
-    mkdir $log_path
-fi
-
-echo "Start generating data."
-source activate $r_env
-for i in $(seq 1 $repeat_times)
-do
-    echo "This is loop $i at $(date)."
-    for h_value in ${h_list[@]}
-    do
-        if [ ! -d $output_path/h$h_value ]; then
-            mkdir $output_path/h$h_value
-        fi
-        for r_value in ${r_list[@]}
-        do
-            for s_value in ${s_list[@]}
-            do
-                Rscript $code_path/gen_simul_data.R -d $data_path_name -N $N_SAMPLE -P $N_SNP -o $output_path -H $h_value -r $r_value -s $s_value >> $log_path/gendata.log 2>&1
-            done
-        done
-    done
-done
-conda deactivate
+# echo "Start generating data."
+# source activate $r_env
+# for i in $(seq 1 $repeat_times)
+# do
+#     echo "This is loop $i at $(date)."
+#     for h_value in ${h_list[@]}
+#     do
+#         if [ ! -d $output_path/h$h_value ]; then
+#             mkdir $output_path/h$h_value
+#         fi
+#         for r_value in ${r_list[@]}
+#         do
+#             for s_value in ${s_list[@]}
+#             do
+#                 Rscript $code_path/gen_simul_data.R -d $data_path_name -N $N_SAMPLE -P $N_SNP -o $output_path -H $h_value -r $r_value -s $s_value >> $log_path/gendata.log 2>&1
+#             done
+#         done
+#     done
+# done
+# conda deactivate
 
 # -------------- PART THREE --------------- #
 #            Run the EM algorithm
@@ -101,7 +100,7 @@ for h_value in ${h_list[@]}
 do
     aim_folder=$output_path/h$h_value
     if ls $aim_folder/phenotypeh* 1> /dev/null 2>&1; then
-        python3 $code_path/lmm_em.py -pd $aim_folder -g $output_path/genotypes.csv -o $output_path >> $log_path/em.log 2>&1
+        python3 $code_path/lmm_em.py -pd $aim_folder -gd $output_path/genotypes.csv -o $output_path >> $log_path/em.log 2>&1
     else
         echo "Phenotype file dose not exist!"
     fi
@@ -117,9 +116,12 @@ source activate $r_env
 for h_value in ${h_list[@]}
 do
     aim_folder=$output_path/h$h_value
-    if ls $aim_folder/summary_data_h* 1> /dev/null 2>&1; then
-        Rscript $code_path/ldsc.R -d $aim_folder -N $N_SAMPLE -o $output_path >> $log_path/ldsc.log 2>&1
-    else
+    summary_data_list=$(ls $aim_folder/summary_data_h*)
+    if [ -n "$summary_data_list" ]; then
+        for summary_data in $summary_data_list
+        do
+            Rscript $code_path/ldsc.R -d $summary_data -N $N_SAMPLE -o $output_path -s $summary_data >> $log_path/ldsc.log 2>&1
+        done
         echo "Summary data file dose not exist in $(aim_folder)!"
     fi
 done
