@@ -1,13 +1,9 @@
 # Rscript to run ldsc.r with given data through command line
 # Usage:
-# Rsript /home/wjiang49/UKBheight/runLDSCR.r -d /home/wjiang49/scratch/UKBsimdata/h0.6/summary_data_h0.9_s2_r0.1_0312120822.csv -o /home/wjiang49/scratch/
+# Rsript /home/wjiang49/UKBheight/runLDSCR.r -d /home/wjiang49/scratch/UKBsimdata/h0.6/summary_data_h0.9_s2_r0.1_0312120822.csv -N 2000 -o /home/wjiang49/scratch/
 # Save the log file in output_path/ldsc.log and the result in output_path/ldsc_results.csv
 
 paste0("Begin at ", Sys.time())
-
-## Set parameters
-MAX_SAMPLE <- 2000
-
 
 ## parse command line arguments
 library(optparse, quietly = TRUE)
@@ -16,6 +12,10 @@ option_list <- list(
     make_option(c("-d", "--data_path"),
         type = "character", default = "summary_data_h0.3_s5_r0.2_0312212952.csv",
         help = "Data path", metavar = "character"
+    ),
+    make_option(c("-N", "--num_samples"),
+        type = "numeric", default = 2000,
+        help = "Sample size", metavar = "numeric"
     ),
     make_option(c("-o", "--output_path"),
         type = "character", default = "/Users/lucajiang/learn/CityU/UKBheight/",
@@ -28,6 +28,7 @@ opt <- parse_args(opt_parser)
 
 data.path <- opt$data_path
 output.path <- opt$output_path
+n_sample <- opt$num_samples
 
 # test
 # data.path <- "summary_data_h0.8_s5_r0.2_0314102636.csv"
@@ -199,9 +200,10 @@ read_summary_data_with_ldsc <- function(file_path) {
 
 # source("ldsc.R") # ! test
 sumstats <- read_summary_data_with_ldsc(data.path)
-fit_ldsc <- estimate_h2(data.frame(Z = sumstats$Z, N = MAX_SAMPLE), sumstats$ldscore, constrain_intercept = T, int = 1)
+fit_ldsc <- estimate_h2(data.frame(Z = sumstats$Z, N = n_sample), sumstats$ldscore, constrain_intercept = T, int = 1)
 p <- nrow(sumstats$ldscore)
 h2.est <- fit_ldsc$coefs[2] * p
+h2.est <- round(h2.est, 6)
 
 # get real h2 from file name
 param <- strsplit(data.path, "summary_data_h")[[1]][2]

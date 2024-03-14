@@ -1,9 +1,9 @@
 # Codes for generate simulated data with command line arguments
 # Usage:
-# If doesn't have genotype data:
-# Rscript /home/wjiang49/UKBheight/gen_simul_data.R -d /home/wjiang49/scratch/height_ukb_50k_chr22 -o /home/wjiang49/scratch/UKBsimdata/ -h 0.6 -r 0.01 -s 2 >> /home/wjiang49/scratch/gendata.log 2>&1
-# If already have genotype data:
-# Rscript /home/wjiang49/UKBheight/gen_simul_data.R -d /home/wjiang49/scratch/height_ukb_50k_chr22 -g /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata/ -h 0.6 -r 0.01 -s 2 >> /home/wjiang49/scratch/gendata.log 2>&1
+# If use plink data:
+# Rscript /home/wjiang49/UKBheight/gen_simul_data.R -d /home/wjiang49/scratch/height_ukb_50k_chr22 -N 2000 -P 40000 -o /home/wjiang49/scratch/UKBsimdata/ -H 0.6 -r 0.01 -s 2 >> /home/wjiang49/scratch/gendata.log 2>&1
+# If use matrix genotype data:
+# Rscript /home/wjiang49/UKBheight/gen_simul_data.R -d /home/wjiang49/scratch/height_ukb_50k_chr22 -g /home/wjiang49/scratch/UKBsimdata/genotypes.csv -N 2000 -P 40000 -o /home/wjiang49/scratch/UKBsimdata/ -H 0.6 -r 0.01 -s 2 >> /home/wjiang49/scratch/gendata.log 2>&1
 
 # File structure of the generated data:
 # /BASE/genotypes.csv
@@ -12,22 +12,24 @@
 
 
 paste0("Begin at ", Sys.time())
-
-## Set parameters
-MAX_GENE <- 40000
-MAX_SAMPLE <- 2000
-
-## parse command line arguments
+# Parse command line arguments
 library(optparse, quietly = TRUE)
-
 option_list <- list(
     make_option(c("-d", "--data_path"),
         type = "character", default = NULL,
         help = "Data path", metavar = "character"
     ),
-    make_option(c("-h", "--heritability"),
+    make_option(c("-H", "--heritability"),
         type = "numeric", default = 0.5,
         help = "Heritability [default= %default]", metavar = "numeric"
+    ),
+    make_option(c("-N", "--num_samples"),
+        type = "numeric", default = 2000,
+        help = "Sample size [default= %default]", metavar = "numeric"
+    ),
+    make_option(c("-P", "--num_snps"),
+        type = "numeric", default = NULL,
+        help = "Number of SNPs [default= # row ldsc]", metavar = "numeric"
     ),
     make_option(c("-o", "--output_path"),
         type = "character", default = "./",
@@ -46,17 +48,25 @@ option_list <- list(
         help = "Genotype data file path", metavar = "character"
     )
 )
-
-opt_parser <- OptionParser(option_list = option_list, add_help_option = FALSE)
+opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
-
 data.path <- opt$data_path
 ldsc.path <- paste0(data.path, ".ldscore")
 genotype.data <- opt$genotype_data
+n_sample <- opt$num_samples
+n_snp <- opt$num_snps
 heritability <- opt$heritability
 output.path <- opt$output_path
 causal.rate <- opt$causal_rate
 sigma_beta <- opt$sigma_beta
+
+# Read ldscore data and get the number of SNPs
+ldsc.data <- read.csv(ldsc.path, header = TRUE, stringsAsFactors = FALSE)
+if (is.null(n_snp)) {
+    n_snp <- nrow(ldsc.data)
+} else if (n_snp != nrow(ldsc.data)) {
+    stop("Number of SNPs in the data does not match the number of SNPs in the LDSCORE file.")
+}
 
 # # TEST
 # # For Remote
@@ -92,12 +102,16 @@ if (is.null(genotype.data)) {
     bed.file <- paste0(data.path, ".bed")
     fam.file <- paste0(data.path, ".fam")
     bim.file <- paste0(data.path, ".bim")
+    # judge if the file exists
+    if (!file.exists(bed.file) || !file.exists(fam.file) || !file.exists(bim.file)) {
+        stop("Genotype data can not found.")
+    }
     genotype.data <- read.plink(bed.file, bim.file, fam.file)
     # print("Data loaded.")
 
     ## Get genotypes
     suppressPackageStartupMessages(library(dplyr))
-    genotypes <- genotype.data$genotypes[1:MAX_SAMPLE, 1:MAX_GENE] %>%
+    genotypes <- genotype.data$genotypes[1:n_sample, 1:n_snp] %>%
         as("numeric") %>%
         as.data.frame(row.names = rownames(genotype.data$genotypes), col.names = colnames(genotype.data$genotypes)) %>%
         apply(., 2, function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))) %>% # impute missing values with mean
@@ -114,9 +128,9 @@ if (is.null(genotype.data)) {
 
 ## Set Ground Truth for Causal SNPs
 # set.seed(123)
-causal.snps <- sample(1:MAX_GENE, round(MAX_GENE * causal.rate))
+causal.snps <- sample(1:n_snp, round(n_snp * causal.rate))
 # randomly set the effect size of causal SNPs
-beta <- as.matrix(rnorm(length(causal.snps), sd = sigma_beta), ncol=1)
+beta <- as.matrix(rnorm(length(causal.snps), sd = sigma_beta), ncol = 1)
 phenotype <- genotypes[, causal.snps] %*% beta
 # phenotype <- as.numeric(phenotype)
 
@@ -127,18 +141,20 @@ if (any(is.na(phenotype))) {
 ## Set heritability of phenotype
 pheno.var <- var(phenotype)
 residual.var <- pheno.var * (1 / heritability - 1)
-residual <- rnorm(MAX_SAMPLE, 0, sqrt(residual.var))
+residual <- rnorm(n_sample, 0, sqrt(residual.var))
 phenotype <- scale(phenotype + residual)
 
 ## Save Genotypes and Phenotype for EM
-if (!file.exists(opt$genotype_data)) {
-    write.csv(genotypes, file.path(output.path, "genotypes.csv"), row.names = FALSE)
+genotypes.file <- file.path(output.path, "genotypes.csv")
+if (!file.exists(genotypes.file)) {
+    write.csv(genotypes, genotypes.file, row.names = FALSE)
 }
 ## check path exists
-if (!dir.exists(file.path(output.path, paste0("h", as.character(heritability))))) {
-    dir.create(file.path(output.path, paste0("h", as.character(heritability))))
+dir_phenotype <- file.path(output.path, paste0("h", as.character(heritability)))
+if (!dir.exists(dir_phenotype)) {
+    dir.create(dir_phenotype)
 }
-write.csv(data.frame(phenotype = phenotype), file.path(output.path, paste0("h", as.character(heritability)), phenotype.name), row.names = FALSE)
+write.csv(data.frame(phenotype = phenotype), file.path(dir_phenotype, phenotype.name), row.names = FALSE)
 
 ## Calculate z-scores in Summary-Level Data
 ## Use lm
@@ -155,12 +171,11 @@ y <- as.matrix(phenotype - mean(phenotype), ncol = 1)
 x <- as.matrix(genotypes)
 x2 <- colSums(x^2)
 betas <- (t(x) %*% y) / x2
-ses <- sqrt(colSums((y %*% matrix(1, 1, MAX_GENE) - x * (matrix(1, MAX_SAMPLE, 1) %*% t(betas)))^2) / ((MAX_SAMPLE - 2) * x2))
+ses <- sqrt(colSums((y %*% matrix(1, 1, n_snp) - x * (matrix(1, n_sample, 1) %*% t(betas)))^2) / ((n_sample - 2) * x2))
 z_scores <- betas / ses
 
 ## Concatenate LDSCORE
 summary_data <- data.frame(SNP = colnames(genotypes), Z = z_scores, row.names = NULL)
-ldsc.data <- read.csv(ldsc.path, header = TRUE, stringsAsFactors = FALSE)
 summary_data <- cbind(summary_data, LDSCORE = ldsc.data[, "ldscore"])
 # save to file
 write.csv(summary_data, file.path(output.path, paste0("h", as.character(heritability)), summary.data.name), row.names = FALSE)

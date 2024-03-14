@@ -346,8 +346,7 @@ if __name__ == "__main__":
             "h": [h],
             "sigma_beta": [sigma_beta],
             "causal_rate": [causal_rate],
-            "hest": [round(h_calc, 6)],
-            "sigma_beta_est": [round(np.sqrt(sigma_beta2), 6)]
+            "hest": [round(h_calc, 6)]
         })
 
         # Save result
