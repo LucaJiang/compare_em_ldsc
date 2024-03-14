@@ -4,60 +4,65 @@
 #SBATCH -J UKBHeight_gendata
 #SBATCH -o /home/wjiang49/UKBheight/slurm_out_%j.log
 #SBATCH -N 1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=12
-#SBATCH --mem=512GB
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64GB
 #SBATCH -t 12:00:00
+#SBATCH --array=1-3
 
+# ------------- GLOBAL SETTINGS ------------#
 
-echo "Start time: $(date)"
-echo "Job Name: $SLURM_JOB_NAME"
+N_SNP=40000 # Set the number of SNPs
+N_SAMPLE=2000 # Set the number of samples
+repeat_times=10 # Set repeat times of generate data
+h_list=($(seq 0.1 0.1 0.9)) # Set heritability list
+r_list=(1e-3 1e-2 5e-1) # Set Causal rate list
+s_list=(0.1 1 10) # Set sigma_beta
+# ! If enable job array, set to # of array
+SLURM_ARRAY_TASK_MAX=3
 
-# -------------- PART ONE ------------------#
-## Calculate ldscore
+# Set data and paths
+data_path_name=/home/wjiang49/scratch/height_ukb_50k_chr22
+output_path=/home/wjiang49/scratch/UKBsimdata
+code_path=/home/wjiang49/UKBheight
+log_path=/home/wjiang49/scratch
+
+# Set conda environment name
+r_env="r4"
+python_env="nsf"
+
+# Calculate task load for each task array
+if [ -n "$SLURM_ARRAY_TASK_ID" ]
+then
+    h_per_task=$(((${#h_list[@]} + $SLURM_ARRAY_TASK_MAX - 1) / $SLURM_ARRAY_TASK_MAX ))
+    start_index=$((($SLURM_ARRAY_TASK_ID - 1) * $h_per_task))
+    end_index=$(($start_index + $h_per_task - 1))
+    # Ensure end_index is not greater than the length of h_list
+    if [ $end_index -ge ${#h_list[@]} ]
+    then
+        end_index=$((${#h_list[@]} - 1))
+    fi
+    h_list=("${h_list[@]:$start_index:$((end_index - start_index + 1))}")
+fi
+
+echo "$SLURM_JOB_NAME: Start time: $(date), Running h = ${h_list[*]}. Repeat $repeat_times times."
+
+# -------------- PART ONE ----------------- #
+#            Calculate ldscore
+# ----------------------------------------- #
 # source activate r4
 # Rscript UKBheight/cal_ld.R 
 # conda deactivate
 
 # -------------- PART TWO ------------------#
-## Generate data
-# # Set the parameters
-# repeat_times=10
-
-# h_list=($(seq 0.1 0.1 0.9))
-# # ! Set the ntasks-per-node=2
-# # h_list1=($(seq 0.6 0.1 0.9))
-# # h_list2=($(seq 0.1 0.1 0.5))
-# # if [ "$SLURM_ARRAY_TASK_ID" -eq "1" ]
-# # then
-# #     h_list=("${h_list1[@]}")
-# # else
-# #     h_list=("${h_list2[@]}")
-# # fi
-
-# r_list=(1e-3 1e-2 1e-1 5e-1)
-# s_list=(0.1 0.5 1 2 5 10)
-
-# TEST
-repeat_times=1
-h_list=($(seq 0.1 0.1 0.2))
-r_list=(1e-3 1e-2)
-s_list=(0.1 0.5)
-
-# Set data path
-data_path=/home/wjiang49/scratch/height_ukb_50k_chr22
-output_path=/home/wjiang49/scratch/UKBsimdata
-code_path=/home/wjiang49/UKBheight
-log_path=/home/wjiang49/scratch
-
-# # echo "Job: generate data & em. Repeat $repeat_times."
-
+#             Generate data
+# ----------------------------------------- #
 # Create the directory if it does not exist
 if [ ! -d $output_path ]; then
     mkdir $output_path
 fi
 
-source activate r4
+source activate $r_env
 for i in $(seq 1 $repeat_times)
 do
     echo "This is loop $i at $(date)."
@@ -70,13 +75,12 @@ do
         do
             for s_value in ${s_list[@]}
             do
-                Rscript $code_path/gen_simul_data.R -d $data_path -o $output_path -h $h_value -r $r_value -s $s_value >> $log_path/gendata.log 2>&1
+                Rscript $code_path/gen_simul_data.R -d $data_path_name -o $output_path -h $h_value -r $r_value -s $s_value >> $log_path/gendata.log 2>&1
             done
         done
     done
 done
 conda deactivate
-
 
 # -------------- PART THREE ------------------#
 # # Run the EM algorithm

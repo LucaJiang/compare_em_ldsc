@@ -131,7 +131,7 @@ residual <- rnorm(MAX_SAMPLE, 0, sqrt(residual.var))
 phenotype <- scale(phenotype + residual)
 
 ## Save Genotypes and Phenotype for EM
-if (is.null(opt$genotype_data)) {
+if (!file.exists(opt$genotype_data)) {
     write.csv(genotypes, file.path(output.path, "genotypes.csv"), row.names = FALSE)
 }
 ## check path exists
