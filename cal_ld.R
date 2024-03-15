@@ -52,4 +52,7 @@ snp.ldscore <- rowSums(cor(genotypes, genotypes)^2)
 snp.position <- genotypes.data$map$position[1:n_snp]
 snp.ldsc.data <- data.frame(chromosome = 22, position = snp.position, ldscore = snp.ldscore)
 suppressPackageStartupMessages(library(data.table))
-fwrite(snp.ldsc.data, output.path, row.names = TRUE)
+file.name <- file.path(output.path, paste0(basename(data.path), ".ldscore"))
+fwrite(snp.ldsc.data, file.name, row.names = TRUE)
+
+paste0("End at ", Sys.time())
