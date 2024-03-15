@@ -61,7 +61,7 @@ for i, by in enumerate(bys):
     visualize(em_data, 'EM', by, fig, axs[0, i])
     visualize(ldsc_data, 'ldsc', by, fig, axs[1, i])
 
-plt.suptitle('Comparison of EM and ldsc in UKBheight22')
+plt.suptitle('Comparison of EM and ldsc')
 plt.tight_layout()
 plt.savefig(os.path.join(output_path, img_name))
 

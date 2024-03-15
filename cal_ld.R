@@ -1,7 +1,8 @@
 # Calculate r square and ldscore with snpStats
-# Usage: Rscript UKBheight/cal_ld.R -d /home/wjiang49/scratch/height_ukb_50k_chr22 -N 2000 -P 40000 -o /home/wjiang49/scratch/UKBsimdata
+# Usage: Rscript UKBheight/cal_ld.R -d /home/wjiang49/scratch/height_ukb_50k_chr22 -N 2000 -P 40000
+# be careful the ldscore file will be saved to the data_path, so that the following analysis can use it directly
 
-paste0("Begin at ", Sys.time())
+print(paste0("Begin at ", Sys.time()))
 # Parse command line arguments
 library(optparse, quietly = TRUE)
 option_list <- list(
@@ -16,16 +17,11 @@ option_list <- list(
     make_option(c("-P", "--num_snps"),
         type = "numeric", default = 40000,
         help = "Number of SNPs [default= # row ldsc]", metavar = "numeric"
-    ),
-    make_option(c("-o", "--output_path"),
-        type = "character", default = "./",
-        help = "Output file path [default= %default]", metavar = "character"
     )
 )
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 data.path <- opt$data_path
-output.path <- opt$output_path
 n_sample <- opt$num_samples
 n_snp <- opt$num_snps
 
@@ -52,7 +48,8 @@ snp.ldscore <- rowSums(cor(genotypes, genotypes)^2)
 snp.position <- genotypes.data$map$position[1:n_snp]
 snp.ldsc.data <- data.frame(chromosome = 22, position = snp.position, ldscore = snp.ldscore)
 suppressPackageStartupMessages(library(data.table))
-file.name <- file.path(output.path, paste0(basename(data.path), ".ldscore"))
+file.name <- paste0(data.path, ".ldscore")
 fwrite(snp.ldsc.data, file.name, row.names = TRUE)
 
-paste0("End at ", Sys.time())
+print(paste0("Output file saved at ", file.name))
+print(paste0("End at ", Sys.time()))
