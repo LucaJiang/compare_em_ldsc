@@ -37,6 +37,8 @@ bim.file <- paste0(data.path, ".bim")
 if (!file.exists(bed.file) || !file.exists(fam.file) || !file.exists(bim.file)) {
     stop("Genotype data not found")
 }
+
+# Read data and impute NA with mean
 genotypes.data <- read.plink(bed.file, bim.file, fam.file)
 suppressPackageStartupMessages(library(dplyr))
 genotypes <- genotypes.data$genotypes[1:n_sample, 1:n_snp] %>%

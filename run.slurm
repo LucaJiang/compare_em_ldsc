@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH -A pa_bios_department
 #SBATCH -p special_bios
-#SBATCH -J UKBHeight_ldrw_vi
+#SBATCH -J UKBHeight_unnamed
 #SBATCH -o /home/wjiang49/UKBheight/log/slurm_out_%j.log
 #SBATCH -N 1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128GB
 #SBATCH -t 12:00:00
-# SBATCH --array=1-3
+
 
 # ------------- GLOBAL SETTINGS ------------#
 N_SNP=40000 # Set the number of SNPs
@@ -17,8 +17,9 @@ repeat_times=10 # Set repeat times of generate data
 h_list=($(seq 0.1 0.1 0.9)) # Set heritability list
 r_list=(1e-3 1e-2 5e-1) # Set Causal rate list
 s_list=(0.1 1 10) # Set sigma_beta
-# ! If enable job array, set to # of array
-SLURM_ARRAY_TASK_MAX=1
+# ! If enable job array, set to # of array 
+# ! and add #SBATCH --array=1-3
+# SLURM_ARRAY_TASK_MAX=1
 
 # Set data and paths
 data_path_name=/home/wjiang49/scratch/height_ukb_50k_chr22

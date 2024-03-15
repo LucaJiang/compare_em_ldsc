@@ -175,17 +175,16 @@ estimate_h2 <- function(sumstat, ldscore, reg_w = 1, constrain_intercept = F, in
 
     # get initial estimate of coefs for constructing weights
     raw_coef <- get_coef_raw(ldscore, sumstat, sumstat, 1)
-    coef <- raw_coef
 
-    # # get predicted chi-squared for constructing weights
-    # n <- sumstat$N
-    # pred <- get_pred(raw_coef$coef, ldscore, n, n, raw_coef$intercept)
+    # get predicted chi-squared for constructing weights
+    n <- sumstat$N
+    pred <- get_pred(raw_coef$coef, ldscore, n, n, raw_coef$intercept)
 
-    # # update weight
-    # reg_w <- update_weight(reg_w, pred)
+    # update weight
+    reg_w <- update_weight(reg_w, pred)
 
-    # # conduct step 1 regression to obtain coefs
-    # coef <- get_coef(ldscore, sumstat, sumstat, reg_w, constrain_intercept, int)
+    # conduct step 1 regression to obtain coefs
+    coef <- get_coef(ldscore, sumstat, sumstat, reg_w, constrain_intercept, int)
 
     return(coef)
 }
@@ -205,6 +204,9 @@ fit_ldsc <- estimate_h2(data.frame(Z = sumstats$Z, N = n_sample), sumstats$ldsco
 p <- length(sumstats$ldscore)
 h2.est <- fit_ldsc$coefs[2] * p
 h2.est <- round(h2.est, 6)
+if (is.null(h2.est)) {
+    stop("h2 estimation failed")
+}
 
 # get real h2 from file name
 param <- strsplit(data.path, "summary_data_h")[[1]][2]
