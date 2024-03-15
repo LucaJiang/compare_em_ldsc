@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH -A pa_bios_department
 #SBATCH -p special_bios
-#SBATCH -J UKBHeight_gendata
+#SBATCH -J UKBHeight_ldrw_vi
 #SBATCH -o /home/wjiang49/UKBheight/log/slurm_out_%j.log
 #SBATCH -N 1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=6
-#SBATCH --mem=64GB
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128GB
 #SBATCH -t 12:00:00
-#SBATCH --array=1-4
+# SBATCH --array=1-3
 
 # ------------- GLOBAL SETTINGS ------------#
 N_SNP=40000 # Set the number of SNPs
@@ -18,7 +18,7 @@ h_list=($(seq 0.1 0.1 0.9)) # Set heritability list
 r_list=(1e-3 1e-2 5e-1) # Set Causal rate list
 s_list=(0.1 1 10) # Set sigma_beta
 # ! If enable job array, set to # of array
-SLURM_ARRAY_TASK_MAX=4
+SLURM_ARRAY_TASK_MAX=1
 
 # Set data and paths
 data_path_name=/home/wjiang49/scratch/height_ukb_50k_chr22
@@ -47,7 +47,7 @@ fi
 
 # sleep random time to avoid the conflict
 sleep $((RANDOM % 10))
-echo "$SLURM_JOB_NAME: Start time: $(date), Running h = ${h_list[*]}. Repeat $repeat_times times."
+echo "$SLURM_JOB_NAME: Start time: $(date), Running h = ${h_list[*]}."
 
 # Create the directory if it does not exist
 if [ ! -d $output_path ]; then
@@ -94,38 +94,38 @@ fi
 # -------------- PART THREE --------------- #
 #            Run the EM algorithm
 # ----------------------------------------- #
-echo "Start running EM algorithm."
-source activate $python_env
-for h_value in ${h_list[@]}
-do
-    aim_folder=$output_path/h$h_value
-    if ls $aim_folder/phenotypeh* 1> /dev/null 2>&1; then
-        python3 $code_path/lmm_em.py -pd $aim_folder -gd $output_path/genotypes.csv -o $output_path >> $log_path/em.log 2>&1
-    else
-        echo "Phenotype file dose not exist!"
-    fi
-done
-conda deactivate
-
+# echo "Start running EM algorithm."
+# source activate $python_env
+# for h_value in ${h_list[@]}
+# do
+#     aim_folder=$output_path/h$h_value
+#     if ls $aim_folder/phenotypeh* 1> /dev/null 2>&1; then
+#         python3 $code_path/lmm_em.py -pd $aim_folder -gd $output_path/genotypes.csv -o $output_path >> $log_path/em.log 2>&1
+#     else
+#         echo "Phenotype file dose not exist in ${aim_folder}!"
+#     fi
+# done
+# conda deactivate
 
 # -------------- PART FOUR ---------------- #
 #        RUN the ldscore regression
 # ----------------------------------------- #
-echo "Start running ldscore regression."
-source activate $r_env
-for h_value in ${h_list[@]}
-do
-    aim_folder=$output_path/h$h_value
-    summary_data_list=$(ls $aim_folder/summary_data_h*)
-    if [ -n "$summary_data_list" ]; then
-        for summary_data in $summary_data_list
-        do
-            Rscript $code_path/ldsc.R -d $summary_data -N $N_SAMPLE -o $output_path -s $summary_data >> $log_path/ldsc.log 2>&1
-        done
-        echo "Summary data file dose not exist in $(aim_folder)!"
-    fi
-done
-conda deactivate
+# echo "Start running ldscore regression."
+# source activate $r_env
+# for h_value in ${h_list[@]}
+# do
+#     aim_folder=$output_path/h$h_value
+#     summary_data_list=$(ls $aim_folder/summary_data_h*)
+#     if [ -n "$summary_data_list" ]; then
+#         for summary_data in $summary_data_list
+#         do
+#             Rscript $code_path/ldsc.R -d $summary_data -N $N_SAMPLE -o $output_path >> $log_path/ldsc.log 2>&1
+#         done
+#     else
+#         echo "Summary data file dose not exist in ${aim_folder}!"
+#     fi
+# done
+# conda deactivate
 
 # -------------- PART FIVE ---------------- #
 #         visualizing the results

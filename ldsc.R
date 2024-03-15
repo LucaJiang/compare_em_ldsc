@@ -60,7 +60,7 @@ get_coef_raw <- function(ldscore_mat, sumstat1, sumstat2, max_int) {
     # get raw coefs
     coef <- (mean_zprod - intercept) / (mean_nprod * mean_ldscore)
 
-    return(list(coef = coef, intercept = intercept))
+    return(list(intercept = intercept, coef = coef))
 }
 
 get_pred <- function(coef, x, n1, n2, intercept) {
@@ -175,16 +175,17 @@ estimate_h2 <- function(sumstat, ldscore, reg_w = 1, constrain_intercept = F, in
 
     # get initial estimate of coefs for constructing weights
     raw_coef <- get_coef_raw(ldscore, sumstat, sumstat, 1)
+    coef <- raw_coef
 
-    # get predicted chi-squared for constructing weights
-    n <- sumstat$N
-    pred <- get_pred(raw_coef$coef, ldscore, n, n, raw_coef$intercept)
+    # # get predicted chi-squared for constructing weights
+    # n <- sumstat$N
+    # pred <- get_pred(raw_coef$coef, ldscore, n, n, raw_coef$intercept)
 
-    # update weight
-    reg_w <- update_weight(reg_w, pred)
+    # # update weight
+    # reg_w <- update_weight(reg_w, pred)
 
-    # conduct step 1 regression to obtain coefs
-    coef <- get_coef(ldscore, sumstat, sumstat, reg_w, constrain_intercept, int)
+    # # conduct step 1 regression to obtain coefs
+    # coef <- get_coef(ldscore, sumstat, sumstat, reg_w, constrain_intercept, int)
 
     return(coef)
 }

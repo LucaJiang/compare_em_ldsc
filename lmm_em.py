@@ -1,6 +1,7 @@
 # Use EM to solve linear mixed model
 # Usage: 
 # python3 /home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.5/phenotypeh0.5_s0.1_r0.001_03142144330958.csv -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata
+# python3 /home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.5 -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata
 # Save the log file in output_path/em.log and the result in output_path/em_results.csv
 # -pd can be a fold or a file, if it is a fold, the program will run all files that contain "phenotype" in the fold
 
@@ -9,7 +10,7 @@ import pandas as pd
 import time, argparse, logging, os
 
 
-def lmm_em(y, X, Z, tol=1e-3, max_iter=10, verbose=True):
+def lmm_em(y, X, Z, tol=1e-3, max_iter=10, verbose=True, logger=None):
     """
     Input:
     y: n x 1, response
@@ -184,7 +185,7 @@ def lmm_em(y, X, Z, tol=1e-3, max_iter=10, verbose=True):
     sigma_e2_list[iter] = sigma_e2
 
     # EM algorithm
-    print("EM algorithm starts")
+    # print("EM algorithm starts")
     convergence = False
     for iter in range(1, max_iter):
         # E step
@@ -227,15 +228,23 @@ def lmm_em(y, X, Z, tol=1e-3, max_iter=10, verbose=True):
     # Algorithm summary
     beta_post_mean = np.mean(mu)
     resident = np.linalg.norm(y - Z @ omega - X @ mu) ** 2 / n
-    if not convergence:
-        print("EM algorithm does not converge within {} iterations".format(iter))
-    else:
-        print("EM algorithm converges after {} iterations".format(iter))
-    print("sigma_beta^2 = {:.4e}".format(sigma_beta2))
-    print("sigma_e^2 = {:.4e}".format(sigma_e2))
-    print("beta_post_mean = {:.4e}".format(beta_post_mean))
-    print("omega_mean = {:.4e}".format(np.mean(omega)))
-    print("resident = {:.4e}".format(resident))
+
+    if verbose:
+        if not convergence:
+            print("EM algorithm does not converge within {} iterations".format(iter))
+        else:
+            print("EM algorithm converges after {} iterations".format(iter))
+        print("sigma_beta^2 = {:.4e}".format(sigma_beta2))
+        print("sigma_e^2 = {:.4e}".format(sigma_e2))
+        print("beta_post_mean = {:.4e}".format(beta_post_mean))
+        print("omega_mean = {:.4e}".format(np.mean(omega)))
+        print("resident = {:.4e}".format(resident))
+
+    if logger is not None:
+        if not convergence:
+            logger.info("EM algorithm does not converge within {} iterations".format(iter))
+        else:
+            logger.info("EM algorithm converges after {} iterations".format(iter))
 
     return (
         likelihood_list[: iter + 1],
@@ -270,10 +279,14 @@ def get_parser():
     )
     return parser
 
-def run_algo(genodata, phenodata):
+def run_algo(genodata, phenodata, logger=None):
+    # Input: 
+    # pd.DataFrame: genodata, phenodata
+    # Output:
+    # pd.DataFrame: result
     # load data
-    genotypes = genodata
-    phenotype = phenodata
+    genotypes = genodata.to_numpy()
+    phenotype = phenodata.to_numpy()
 
     y = phenotype.reshape(-1, 1)
     X = genotypes
@@ -290,7 +303,7 @@ def run_algo(genodata, phenodata):
         sigma_beta2_list,
         sigma_e2_list,
         beta_post
-    ) = lmm_em(y, X, Z, tol=1e-6, max_iter=2000, verbose=False)
+    ) = lmm_em(y, X, Z, tol=1e-6, max_iter=2000, verbose=False, logger=logger)
     end_time = time.time()
     print(
         "Run time: %d min %.2f s"
@@ -345,7 +358,7 @@ if __name__ == "__main__":
     if not os.path.exists(genotypes_path):
         raise ValueError("Genotype file does not exist in " + genotypes_path)
     else:
-        genotypes = pd.read_csv(genotypes_path, header=0).values
+        genotypes = pd.read_csv(genotypes_path, header=0)
 
     # if phenotype_data_path is a fold, get all files that contain "phenotype" in the fold
     phenotype_paths = []
@@ -365,9 +378,9 @@ if __name__ == "__main__":
         if not os.path.exists(phenotype_path):
             raise ValueError("Phenotype file does not exist in " + phenotype_path)
         else:
-            phenotype = pd.read_csv(phenotype_path, header=0).values
+            phenotype = pd.read_csv(phenotype_path, header=0)
 
-        result = run_algo(genotypes, phenotype)
+        result = run_algo(genotypes, phenotype, logger=logger)
         results = pd.concat([results, result])
 
         # Save result
