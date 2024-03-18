@@ -31,8 +31,9 @@ output.path <- opt$output_path
 n_sample <- opt$num_samples
 
 # test
-# data.path <- "summary_data_h0.8_s5_r0.2_0314102636.csv"
+# data.path <- "/Users/lucajiang/learn/CityU/UKBheight/compare_em_ldsc/test/summary_data_h0.8_s1_r1_03151639444055.csv"
 # output.path <- "/Users/lucajiang/learn/CityU/UKBheight/"
+# n_sample <- 2000
 
 # calculate h2 ---------------------
 get_coef_raw <- function(ldscore_mat, sumstat1, sumstat2, max_int) {

@@ -108,8 +108,8 @@ do
 done
 conda deactivate
 
-# -------------- PART FOUR ---------------- #
-#        RUN the ldscore regression
+# -------------- PART FOUR - 1 ------------ #
+#      RUN the ldscore regression in R
 # ----------------------------------------- #
 echo "Start running ldscore regression."
 source activate $r_env
@@ -122,6 +122,22 @@ do
         do
             Rscript $code_path/ldsc.R -d $summary_data -N $N_SAMPLE -o $output_path >> $log_path/ldsc.log 2>&1
         done
+    else
+        echo "Summary data file dose not exist in ${aim_folder}!"
+    fi
+done
+conda deactivate
+
+# -------------- PART FOUR - 2 ------------ #
+#          RUN the irwls in python
+# ----------------------------------------- #
+echo "Start running irwls."
+source activate $python_env
+for h_value in ${h_list[@]}
+do
+    aim_folder=$output_path/h$h_value
+    if ls $aim_folder/summary_data_h* 1> /dev/null 2>&1; then
+        python3 $code_path/irwls.py -pd $aim_folder -o $output_path >> $log_path/irwls.log 2>&1
     else
         echo "Summary data file dose not exist in ${aim_folder}!"
     fi

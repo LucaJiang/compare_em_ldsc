@@ -1,7 +1,7 @@
 # Use EM to solve linear mixed model
-# Usage: 
-# python3 /home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.5/phenotypeh0.5_s0.1_r0.001_03142144330958.csv -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata
-# python3 /home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.5 -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata
+# Usage:
+# python3 (single file) /home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.5/phenotypeh0.5_s0.1_r0.001_03142144330958.csv -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata
+# python3  (folder)/home/wjiang49/UKBheight/lmm_em.py -pd /home/wjiang49/scratch/UKBsimdata/h0.5 -gd /home/wjiang49/scratch/UKBsimdata/genotypes.csv -o /home/wjiang49/scratch/UKBsimdata
 # Save the log file in output_path/em.log and the result in output_path/em_results.csv
 # -pd can be a fold or a file, if it is a fold, the program will run all files that contain "phenotype" in the fold
 
@@ -242,7 +242,9 @@ def lmm_em(y, X, Z, tol=1e-3, max_iter=10, verbose=True, logger=None):
 
     if logger is not None:
         if not convergence:
-            logger.info("EM algorithm does not converge within {} iterations".format(iter))
+            logger.info(
+                "EM algorithm does not converge within {} iterations".format(iter)
+            )
         else:
             logger.info("EM algorithm converges after {} iterations".format(iter))
 
@@ -251,7 +253,7 @@ def lmm_em(y, X, Z, tol=1e-3, max_iter=10, verbose=True, logger=None):
         omega_list[:, : iter + 1],
         sigma_beta2_list[: iter + 1],
         sigma_e2_list[: iter + 1],
-        mu # beta_post
+        mu,  # beta_post
     )
 
 
@@ -261,26 +263,23 @@ def get_parser():
         "-pd",
         "--phenotype_data_path",
         default="phenotypeh0.8.csv",
-        help="Path to the summary data"
+        help="Path to the summary data",
     )
     parser.add_argument(
         "-gd",
         "--genotype_data_path",
         type=str,
         default="genotypes_partial.csv",
-        help="Path to the summary data"
+        help="Path to the summary data",
     )
     parser.add_argument(
-        "-o",
-        "--output_path",
-        type=str,
-        default="em",
-        help="Path to the output file"
+        "-o", "--output_path", type=str, default="em", help="Path to the output file"
     )
     return parser
 
+
 def run_algo(genodata, phenodata, logger=None):
-    # Input: 
+    # Input:
     # pd.DataFrame: genodata, phenodata
     # Output:
     # pd.DataFrame: result
@@ -297,13 +296,9 @@ def run_algo(genodata, phenodata, logger=None):
     # run EM algorithm
     start_time = time.time()
     # run EM algorithm
-    (
-        likelihood_list,
-        omega_list,
-        sigma_beta2_list,
-        sigma_e2_list,
-        beta_post
-    ) = lmm_em(y, X, Z, tol=1e-6, max_iter=2000, verbose=False, logger=logger)
+    (likelihood_list, omega_list, sigma_beta2_list, sigma_e2_list, beta_post) = lmm_em(
+        y, X, Z, tol=1e-6, max_iter=2000, verbose=False, logger=logger
+    )
     end_time = time.time()
     print(
         "Run time: %d min %.2f s"
@@ -315,7 +310,11 @@ def run_algo(genodata, phenodata, logger=None):
     # Get params from file name
     # file_name: phenotypeh${heritability}_s${sigma_beta}_r${causal_rate}_%m%d%H%M%S.csv
     phenotype_params = phenotype_path.split("phenotypeh")[1].split(".csv")[0].split("_")
-    h, sigma_beta, causal_rate = float(phenotype_params[0][1:]), float(phenotype_params[1][1:]), float(phenotype_params[2][1:])
+    h, sigma_beta, causal_rate = (
+        float(phenotype_params[0][1:]),
+        float(phenotype_params[1][1:]),
+        float(phenotype_params[2][1:]),
+    )
     created_time = phenotype_params[3]
 
     # Compare with real h
@@ -323,15 +322,18 @@ def run_algo(genodata, phenodata, logger=None):
     h_calc = var_xbeta / (var_xbeta + sigma_e2)
     print("Real h = %.4f, calculated h = %.4f" % (h, h_calc))
 
-    result = pd.DataFrame({
-        "data": [created_time],
-        "h": [h],
-        "sigma_beta": [sigma_beta],
-        "causal_rate": [causal_rate],
-        "hest": [round(h_calc, 6)]
-    })
+    result = pd.DataFrame(
+        {
+            "data": [created_time],
+            "h": [h],
+            "sigma_beta": [sigma_beta],
+            "causal_rate": [causal_rate],
+            "hest": [round(h_calc, 6)],
+        }
+    )
 
     return result
+
 
 if __name__ == "__main__":
     # set up logging and parse arguments
@@ -340,18 +342,20 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_path):
         # check if output path exists
         os.makedirs(args.output_path)
-    logger = logging.getLogger('em_logger')
+    logger = logging.getLogger("em_logger")
     logger.setLevel(logging.INFO)
-    log_path = args.output_path+"/log"
+    log_path = args.output_path + "/log"
     if not os.path.exists(log_path):
         os.makedirs(log_path)
-    fh = logging.FileHandler(log_path+"/em.log", mode='a')
+    fh = logging.FileHandler(log_path + "/em.log", mode="a")
     fh.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     fh.setFormatter(formatter)
     logger.addHandler(fh)
     logger.info("Start time: %s" % time.ctime())
-    print("Start time: %s" % time.ctime())
+    # print("Start time: %s" % time.ctime())
 
     # load data
     genotypes_path = args.genotype_data_path
@@ -364,7 +368,6 @@ if __name__ == "__main__":
     phenotype_paths = []
     if os.path.isdir(args.phenotype_data_path):
         phenotype_fold = args.phenotype_data_path
-        phenotype_paths = []
         # get all files that contain "phenotype" in the fold
         for root, dirs, files in os.walk(phenotype_fold):
             for file in files:
@@ -386,7 +389,7 @@ if __name__ == "__main__":
         # Save result
     result_file = args.output_path + "/em_results.csv"
     with open(result_file, "a") as f:
-        results.to_csv(f, header=f.tell()==0, index=False)
+        results.to_csv(f, header=f.tell() == 0, index=False)
 
     logger.info("End time: %s\n\n" % time.ctime())
-    print("End time: %s\n\n" % time.ctime())
+    # print("End time: %s\n\n" % time.ctime())
