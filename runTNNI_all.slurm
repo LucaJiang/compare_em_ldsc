@@ -137,7 +137,7 @@ for h_value in ${h_list[@]}
 do
     aim_folder=$output_path/h$h_value
     if ls $aim_folder/summary_data_h* 1> /dev/null 2>&1; then
-        python3 $code_path/irwls.py -pd $aim_folder -o $output_path >> $log_path/irwls.log 2>&1
+        python3 $code_path/irwls.py -d $aim_folder -o $output_path -N $N_SAMPLE >> $log_path/irwls.log 2>&1
     else
         echo "Summary data file dose not exist in ${aim_folder}!"
     fi

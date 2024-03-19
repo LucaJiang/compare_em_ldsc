@@ -88,13 +88,13 @@ class IRLS:
         w_ldsc = ldscore * np.sqrt(self.weights)
         w_zsq = zsq * np.sqrt(self.weights)
         # regression in ldsc.r
-        xtx = np.matmul(w_ldsc.T, w_ldsc)
-        xty = np.matmul(w_ldsc.T, w_zsq)
-        beta = np.linalg.solve(xtx, xty).flatten()
-        # beta = np.linalg.lstsq(w_ldsc, w_zsq, rcond=None)[0]
+        # xtx = np.matmul(w_ldsc.T, w_ldsc)
+        # xty = np.matmul(w_ldsc.T, w_zsq)
+        # beta = np.linalg.solve(xtx, xty).flatten()
+        beta = np.linalg.lstsq(w_ldsc, w_zsq, rcond=None)[0]
         if not constraint_intercept:
-            self.intercept = beta[0]
-            self.beta = beta[1] / self.N * self.p
+            self.intercept = beta[0].item()
+            self.beta = beta[1].item() / self.N * self.p
         else:
             self.beta = beta.item() / self.N * self.p
 
@@ -117,7 +117,7 @@ def get_parser():
         "-d",
         "--data_path",
         type=str,
-        default="/Users/lucajiang/learn/CityU/UKBheight/compare_em_ldsc/test/summary_data_h0.8_s1_r1_03151639444055.csv",
+        default="compare_em_ldsc/test/summary_data_h0.6_s1_r1_03151640072308.csv",
         help="Path to the summary data",
     )
     parser.add_argument(
@@ -128,7 +128,7 @@ def get_parser():
         help="Path to the output file",
     )
     parser.add_argument(
-        "-N", "--N", type=int, default=2000, help="Number of individuals in LDSC"
+        "-N", "--N", type=int, default=1000, help="Number of individuals in LDSC"
     )
     return parser
 
@@ -195,9 +195,9 @@ if __name__ == "__main__":
         h_est_unfix = irwls.get_coefficients()
         irwls.regression(constraint_intercept=True, subtract=intercept)
         h_est_fix = irwls.get_coefficients()
-        # print("Intercept = %.4f, h = %.4f" % (intercept, h_est_unfix))
+        print("Intercept = %.4f, h = %.4f" % (intercept, h_est_unfix))
         logger.info("Intercept = %.4f, h = %.4f" % (intercept, h_est_unfix))
-        # print("h_fix = %.4f" % h_est_fix)
+        print("h_fix = %.4f" % h_est_fix)
 
         result = pd.DataFrame(
             {
