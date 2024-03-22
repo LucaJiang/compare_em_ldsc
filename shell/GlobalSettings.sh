@@ -10,10 +10,12 @@ s_list=(1) # Set sigma_beta
 SLURM_ARRAY_TASK_MAX=3
 
 # Set data and paths
-data_path_name=/home/wjiang49/scratch/height_ukb_50k_TNNI1
+data_path=/home/wjiang49/scratch
+data_name=height_ukb_50k_TNNI1
 output_path=/home/wjiang49/scratch/UKBTNNI
 code_path=/home/wjiang49/UKBheight
 log_path=/home/wjiang49/scratch/UKBTNNI/log
+data_path_name=${data_path}/${data_name}
 
 # Set conda environment name
 r_env="r4"
