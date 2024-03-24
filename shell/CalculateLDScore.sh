@@ -14,7 +14,7 @@ source shell/GlobalSettings.sh
 # Calculate ldscore
 echo "Start calculating ldscore at $(date)."
 source activate $r_env
-Rscript $code_path/cal_ld.R -d $data_path_name -N $N_SAMPLE -P $N_SNP -o $data_path_name >> $log_path/cal_ld.log 2>&1
+Rscript $code_path/cal_ld.R -d $data_path_name -N $N_SAMPLE -P $N_SNP >> $log_path/cal_ld.log 2>&1
 conda deactivate
 echo "Finish calculating ldscore at $(date)."
 # END

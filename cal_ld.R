@@ -11,7 +11,7 @@ option_list <- list(
         help = "Data path", metavar = "character"
     ),
     make_option(c("-N", "--num_samples"),
-        type = "numeric", default = 2000,
+        type = "numeric", default = 1000,
         help = "Sample size [default= %default]", metavar = "numeric"
     ),
     make_option(c("-P", "--num_snps"),
