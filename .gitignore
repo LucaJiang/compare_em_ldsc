@@ -3,3 +3,4 @@
 *.png
 test/
 temp*
+.Ds_Store
