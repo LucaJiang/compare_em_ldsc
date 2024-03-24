@@ -1,6 +1,6 @@
 # Visualize the results of EM and ldsc
 # Usage: python3 $code_path/visualize.py -d $output_path -o $output_path
-# File: em_results.csv and ldsc_results.csv should be in the output_path
+# File: em_results.csv and irwls_results.csv should be in the output_path
 # Output: boxplot
 # Input data structure:
 # data,h,sigma_beta,causal_rate,hest
@@ -48,22 +48,23 @@ img_name = "compare_" + datetime.now().strftime("%m%d%H%M%S") + ".png"
 
 # Read data
 em_data_path = os.path.join(data_path, "em_results.csv")
-ldsc_data_path = os.path.join(data_path, "ldsc_results.csv")
+# ldsc_data_path = os.path.join(data_path, "ldsc_results.csv")
 irwls_data_path = os.path.join(data_path, "irwls_results.csv")
-if not os.path.exists(em_data_path) or not os.path.exists(ldsc_data_path):
+if not os.path.exists(em_data_path) or not os.path.exists(irwls_data_path):
     print("No data file found!")
     exit(1)
 em_data = pd.read_csv(em_data_path)
-ldsc_data = pd.read_csv(ldsc_data_path)
+# ldsc_data = pd.read_csv(ldsc_data_path)
 irwls_data = pd.read_csv(irwls_data_path)
 
 # Visualize
-fig, axs = plt.subplots(3, 2, figsize=(12, 18))
+fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+# fig, axs = plt.subplots(3, 2, figsize=(12, 18))
 bys = ["sigma_beta", "causal_rate"]
 for i, by in enumerate(bys):
     visualize(em_data, "EM", by, fig, axs[0, i])
-    visualize(ldsc_data, "ldsc", by, fig, axs[1, i])
-    visualize(irwls_data, "irwls", by, fig, axs[2, i])
+    visualize(irwls_data, "irwls", by, fig, axs[1, i])
+    # visualize(ldsc_data, "ldsc", by, fig, axs[2, i])
 
 plt.suptitle("Comparison of EM and ldsc")
 plt.tight_layout()
