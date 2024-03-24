@@ -10,7 +10,7 @@
 #SBATCH -t 10:00
 
 # Get the global settings
-source GlobalSettings.sh
+source shell/GlobalSettings.sh
 echo "Start visualizing the results at $(date)."
 source activate $python_env
 python3 $code_path/visualize.py -d $output_path -o $output_path >> $log_path/visualize.log 2>&1

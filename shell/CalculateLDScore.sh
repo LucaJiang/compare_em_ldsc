@@ -10,7 +10,7 @@
 #SBATCH -t 2:00:00
 
 # Get the global settings
-source GlobalSettings.sh
+source shell/GlobalSettings.sh
 # Create the directory if it does not exist
 if [ ! -d $output_path ]; then
     mkdir -p $output_path

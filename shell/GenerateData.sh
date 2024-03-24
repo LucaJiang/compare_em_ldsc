@@ -11,7 +11,7 @@
 #SBATCH --array=1-3
 
 # Get the global settings
-source GlobalSettings.sh
+source shell/GlobalSettings.sh
 # Calculate task load for each task array
 if [ -n "$SLURM_ARRAY_TASK_ID" ]
 then

@@ -10,7 +10,7 @@
 #SBATCH -t 1:00:00
 
 # Get the global settings
-source GlobalSettings.sh
+source shell/GlobalSettings.sh
 # Run irwls algorithm to estimate the heritability
 echo "Start running irwls algorithm at $(date), Running h = ${h_list[*]}."
 source activate $python_env

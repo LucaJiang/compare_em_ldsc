@@ -4,8 +4,8 @@
   - [Introduction](#introduction)
   - [Structure](#structure)
   - [Usage](#usage)
-    - [UKBTNNI Data: Step by Step](#ukbtnni-data-step-by-step)
     - [UKBTNNI Data: Run All](#ukbtnni-data-run-all)
+    - [UKBTNNI Data: Step by Step](#ukbtnni-data-step-by-step)
 
 ## Introduction
 
@@ -25,6 +25,20 @@ This repository provides a pipeline to compare the result of EM algorithm and LD
 ## Usage
 
 The Usage of each script is described in the header of each script. You can set parameters in the GLOBAL SETTINGS part of `run.slurm` to run the pipeline. Or follow the following steps to run the pipeline step by step.
+
+### UKBTNNI Data: Run All
+
+Here's a script to run all the above. Remember to change the settings in [GlobalSettings.sh](shell/GlobalSettings.sh) accordingly.
+
+`cd` to the directory of the code scripts, then run the following script:
+
+```{bash}
+calLd_id=$(sbatch --parsable shell/CalculateLDScore.sh)
+gendata_id=$(sbatch --parsable --dependency=afterok:$calLd_id shell/GenerateData.sh)
+em_id=$(sbatch --parsable --dependency=afterok:$gendata_id shell/EM.sh)
+ldsc_id=$(sbatch --parsable --dependency=afterok:$gendata_id shell/LDSC.sh)
+sbatch --dependency=afterok:$em_id:$ldsc_id shell/Visual.sh
+```
 
 ### UKBTNNI Data: Step by Step
 
@@ -62,7 +76,7 @@ log
 3. Calculate LD score and record the job id for the following steps:
 
 ```{bash}
-calLd_id=${sbatch --parsable shell/CalculateLDScore.sh}
+calLd_id=$(sbatch --parsable shell/CalculateLDScore.sh)
 ```
 
 The .ldscore file will be saved in the same directory as the plink data.
@@ -121,18 +135,5 @@ After that, the `${output_path}` directory should look like this:
 sbatch --dependency=afterok:${em_id}:${ldsc_id} shell/Visual.sh
 ```
 Also, the figures will be saved in the `${output_path}` directory.
-
-### UKBTNNI Data: Run All
-
-Here's a script to run all the above. Remember to change the settings in [GlobalSettings.sh](shell/GlobalSettings.sh) accordingly.
-
-```{bash}
-cd /home/wjiang49/UKBheight/
-calLd_id=${sbatch --parsable shell/CalculateLDScore.sh}
-gendata_id=${sbatch --parsable --dependency=afterok:${calLd_id} shell/GenerateData.sh}
-em_id=${sbatch --parsable --dependency=afterok:${gendata_id} shell/EM.sh}
-ldsc_id=${sbatch --parsable --dependency=afterok:${gendata_id} shell/LDSC.sh}
-sbatch --dependency=afterok:${em_id}:${ldsc_id} shell/Visual.sh
-```
 
 END
