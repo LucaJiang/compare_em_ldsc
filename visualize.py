@@ -29,6 +29,8 @@ def visualize(df, algo, by, fig, ax):
     for i in range(len(h_list)):
         ax.plot([i - 0.4, i + 0.4], [h_list[i], h_list[i]], "r-")
     ax.plot(0, 0, "r-", label="h real")
+    if by == 'sigma_beta':
+        by = 'all'
     ax.set_title(algo + " with different " + by)
     ax.set_xlabel("h real")
     ax.set_ylabel("h estimated")
@@ -48,23 +50,37 @@ img_name = "compare_" + datetime.now().strftime("%m%d%H%M%S") + ".png"
 
 # Read data
 em_data_path = os.path.join(data_path, "em_results.csv")
-# ldsc_data_path = os.path.join(data_path, "ldsc_results.csv")
+ldsc_data_path = os.path.join(data_path, "ldsc_results.csv")
 irwls_data_path = os.path.join(data_path, "irwls_results.csv")
-if not os.path.exists(em_data_path) or not os.path.exists(irwls_data_path):
+if not os.path.exists(em_data_path) and not os.path.exists(irwls_data_path) and not os.path.exists(ldsc_data_path):
     print("No data file found!")
     exit(1)
-em_data = pd.read_csv(em_data_path)
-# ldsc_data = pd.read_csv(ldsc_data_path)
-irwls_data = pd.read_csv(irwls_data_path)
+
+num_data = 0
+if os.path.exists(em_data_path):
+    em_data = pd.read_csv(em_data_path)
+    num_data += 1
+if os.path.exists(irwls_data_path):
+    irwls_data = pd.read_csv(irwls_data_path)
+    num_data += 1
+if os.path.exists(ldsc_data_path):
+    ldsc_data = pd.read_csv(ldsc_data_path)
+    num_data += 1
 
 # Visualize
-fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+fig, axs = plt.subplots(num_data, 2, figsize=(12, 6*num_data))
 # fig, axs = plt.subplots(3, 2, figsize=(12, 18))
 bys = ["sigma_beta", "causal_rate"]
 for i, by in enumerate(bys):
-    visualize(em_data, "EM", by, fig, axs[0, i])
-    visualize(irwls_data, "irwls", by, fig, axs[1, i])
-    # visualize(ldsc_data, "ldsc", by, fig, axs[2, i])
+    count = 0
+    if os.path.exists(em_data_path):
+        visualize(em_data, "EM", by, fig, axs[count, i])
+        count += 1
+    if os.path.exists(irwls_data_path):
+        visualize(irwls_data, "irwls", by, fig, axs[count, i])
+        count += 1
+    if os.path.exists(ldsc_data_path):
+        visualize(ldsc_data, "ldsc", by, fig, axs[count, i])
 
 plt.suptitle("Comparison of EM and ldsc")
 plt.tight_layout()
