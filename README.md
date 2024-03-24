@@ -86,7 +86,7 @@ This will calculate the LD score and save the result in the same directory as th
 4. Generate the simulation data:
 
 ```{bash}
-gendata_id=${sbatch --parsable --dependency=afterok:${calLd_id} shell/GenerateData.sh}
+gendata_id=$(sbatch --parsable --dependency=afterok:$calLd_id shell/GenerateData.sh)
 ```
 
 The results will be saved in the `${output_path}` directory. If such directory does not exist, it will be created. The generated data shall look like this:
@@ -107,13 +107,13 @@ The summary data and phenotype data will be saved in the `h0.*` directory. The l
 i. Run EM:
 
 ```{bash}
-em_id=${sbatch --parsable --dependency=afterok:${gendata_id} shell/EM.sh}
+em_id=$(sbatch --parsable --dependency=afterok:$gendata_id shell/EM.sh)
 ```
 
 ii. Run LDSC:
 
 ```{bash}
-ldsc_id=${sbatch --parsable --dependency=afterok:${gendata_id} shell/LDSC.sh}
+ldsc_id=$(sbatch --parsable --dependency=afterok:$gendata_id shell/LDSC.sh)
 ```
 
 After that, the `${output_path}` directory should look like this:
@@ -132,8 +132,23 @@ After that, the `${output_path}` directory should look like this:
 6. Visualize the result:
 
 ```{bash}
-sbatch --dependency=afterok:${em_id}:${ldsc_id} shell/Visual.sh
+sbatch --dependency=afterok:$em_id:$ldsc_id shell/Visual.sh
 ```
+
 Also, the figures will be saved in the `${output_path}` directory.
+
+7. The running status can be checked by:
+
+```{bash}
+>squeue -p special_bios
+
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+            623813 special_b UKBHeigh wjiang49 PD       0:00      1 (Dependency)
+      623812_[1-3] special_b UKBHeigh wjiang49 PD       0:00      1 (Dependency)
+            623814 special_b UKBHeigh wjiang49 PD       0:00      1 (Dependency)
+          623809_1 special_b UKBHeigh wjiang49  R       1:59      1 hpc-gpu007
+          623809_2 special_b UKBHeigh wjiang49  R       1:59      1 hpc-gpu007
+          623809_3 special_b UKBHeigh wjiang49  R       1:59      1 hpc-gpu007
+```
 
 END
