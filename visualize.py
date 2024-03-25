@@ -28,12 +28,15 @@ def visualize(df, algo, by, fig, ax):
     # draw the h line for each x
     for i in range(len(h_list)):
         ax.plot([i - 0.4, i + 0.4], [h_list[i], h_list[i]], "r-")
-    ax.plot(0, 0, "r-", label="h real")
+    ax.plot(0, 0, "r-", label="true h")
     if by == "sigma_beta":
         by = "all"
-    ax.set_title(algo + ": " + by)
-    ax.set_xlabel("h real")
-    ax.set_ylabel("h estimated")
+        ax.set_title(algo + ": " + by)
+    elif by == "causal_rate":
+        by = "proportion of causal SNPs"
+        ax.set_title(algo + ": different proportions of causal SNPs")
+    ax.set_xlabel("true heritability")
+    ax.set_ylabel("estimated heritability")
     ax.legend(title=by)
 
 

@@ -1,5 +1,7 @@
 # Compare the Result of EM and LDSC
 
+<!-- TODO: random effects model下面heritability 的定义和用EM和ldsc估计heritability的数学推导，参考VCM的文档 -->
+
 - [Compare the Result of EM and LDSC](#compare-the-result-of-em-and-ldsc)
   - [Introduction](#introduction)
   - [Structure](#structure)
