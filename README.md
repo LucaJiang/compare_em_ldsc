@@ -11,6 +11,8 @@
 
 This repository provides a pipeline to compare the result of EM algorithm and LDSC algorithm in the context of GWAS. The input data is the UK Biobank data for height and the output is the comparison of the heritability estimation by EM and LDSC. The pipeline includes the following steps:
 
+The document of EM Algorithm can be found in [EM](https://lucajiang.github.io/Mixed-Effect-Model-Numerical-Algorithm/) and the document of LDSC can be found in [LDSC](https://lucajiang.github.io/ldsc_notes/#/).
+
 ## Structure
 
 * [Calculate LDScore](cal_ld.R): Calculate the LD score
@@ -135,7 +137,9 @@ After that, the `${output_path}` directory should look like this:
 sbatch --dependency=afterok:$em_id:$ldsc_id shell/Visual.sh
 ```
 
-Also, the figures will be saved in the `${output_path}` directory.
+Also, the figures will be saved in the `${output_path}` directory. You can get a figure like this:
+
+![result](./result.jpg)
 
 7. The running status can be checked by:
 

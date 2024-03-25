@@ -194,6 +194,8 @@ if __name__ == "__main__":
         intercept = irwls.get_intercept()
         h_est_unfix = irwls.get_coefficients()
         irwls.regression(constraint_intercept=True, subtract=intercept)
+        # change this line to fix the intercept as 1
+        # irwls.regression(constraint_intercept=True, subtract=1)
         h_est_fix = irwls.get_coefficients()
         print("Intercept = %.4f, h = %.4f" % (intercept, h_est_unfix))
         logger.info("Intercept = %.4f, h = %.4f" % (intercept, h_est_unfix))
